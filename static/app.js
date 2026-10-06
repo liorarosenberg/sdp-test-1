@@ -516,6 +516,11 @@ function wire() {
     if (e.key === "Escape" || e.key === "Esc" || e.keyCode === 27)
       document.querySelectorAll(".modal:not(.hidden)").forEach(m => m.classList.add("hidden"));
   }, true);
+  const pathEl = $("pathFilter");
+  pathEl.addEventListener("click", () => {
+    if (!$("pathSuggestions").options.length) return;
+    try { pathEl.showPicker(); } catch { /* older browser: double-click as before */ }
+  });
   document.querySelectorAll(".modal").forEach(m => m.addEventListener("mousedown", e => { if (e.target === m) m.classList.add("hidden"); }));
 }
 
