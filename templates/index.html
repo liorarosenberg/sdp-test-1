@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RAT — Repo Analysis Tool</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
+        onerror="window.__noChart=true"></script>
+</head>
+<body>
+
+<header class="topbar">
+  <div class="brand">RAT <span class="sub">Repo Analysis Tool</span></div>
+  <select id="repoSelect" title="Repository"><option value="">No repositories yet</option></select>
+  <input id="refInput" title="Reference commit (branch, tag or hash — metrics cover the non-merge commits reachable from it)" value="HEAD" spellcheck="false">
+  <button id="btnAuthors" class="ghost" title="Merge authors (mailmap is applied automatically)">Authors</button>
+  <button id="btnAddRepo" class="primary">+ Add repo</button>
+</header>
+
+<main id="app">
+  <section id="hero" class="hero card hidden">
+    <h1>Welcome to RAT</h1>
+    <p>Add a git repository to analyse it. You can either upload a <b>zip</b> of the
+       repository (including its <code>.git</code> folder) or <b>clone</b> a remote URL.</p>
+    <button class="primary" onclick="ui.openAddRepo()">+ Add your first repository</button>
+  </section>
+
+  <section id="dashboard" class="hidden">
+    <!-- filters -->
+    <div class="card filterbar">
+      <div class="fgroup">
+        <label>Author</label>
+        <div class="multiselect" id="authorMulti">
+          <button type="button" id="authorToggle" class="ms-toggle"
+                  title="Filter commits by author (mailmap + manual merges applied). Click authors to toggle them.">All authors ▾</button>
+          <div class="ms-panel hidden" id="authorPanel">
+            <div class="ms-actions">
+              <button type="button" class="chip" id="authorClear">Deselect all</button>
+              <span class="muted small">no selection = all authors</span>
+            </div>
+            <div class="ms-list" id="authorList"></div>
+          </div>
+        </div>
+      </div>
+      <div class="fgroup grow">
+        <label>File or directory</label>
+        <input id="pathFilter" list="pathSuggestions" placeholder="(root) — e.g. src/ or src/main.py" spellcheck="false">
+        <datalist id="pathSuggestions"></datalist>
+      </div>
+      <div class="fgroup" id="timeFilters">
+        <label>From — to <span class="muted">(UTC, committer date)</span></label>
+        <div class="daterow">
+          <input type="date" id="dateFrom"> <span class="muted">→</span>
+          <input type="date" id="dateTo">
+        </div>
+        <div class="chips">
+          <button class="chip" data-days="30">30d</button>
+          <button class="chip" data-days="90">90d</button>
+          <button class="chip" data-days="365">1y</button>
+          <button class="chip" data-days="0">All time</button>
+        </div>
+      </div>
+      <div class="fgroup" id="manualFilters">
+        <label>Manual commit selection</label>
+        <div class="daterow">
+          <button id="btnPickCommits" class="ghost">Select commits…</button>
+          <span id="selectionInfo" class="pill hidden"></span>
+          <button id="btnClearSelection" class="chip hidden">Clear</button>
+        </div>
+      </div>
+      <div class="fgroup">
+        <label>&nbsp;</label>
+        <button id="btnApply" class="primary">Apply filters</button>
+      </div>
+    </div>
+
+    <!-- summary -->
+    <div id="cards" class="cards"></div>
+
+    <!-- charts -->
+    <div id="chartsCard" class="card">
+      <div class="card-title">Visualisation</div>
+      <div class="charts">
+        <div class="chartbox wide"><canvas id="chTime"></canvas></div>
+        <div class="chartbox"><canvas id="chFiles"></canvas></div>
+        <div class="chartbox"><canvas id="chAuthors"></canvas></div>
+      </div>
+    </div>
+
+    <!-- tables -->
+    <div class="card">
+      <div class="tabs">
+        <button class="tab active" data-tab="dirs">Directories</button>
+        <button class="tab" data-tab="files">Files</button>
+        <button class="tab" data-tab="authors">Authors</button>
+        <span class="spacer"></span>
+        <span id="scopeInfo" class="muted"></span>
+        <button id="btnCsv" class="ghost">Export CSV</button>
+      </div>
+      <div class="tablewrap">
+        <table id="tbl"></table>
+      </div>
+      <div id="tableNote" class="muted small"></div>
+    </div>
+  </section>
+</main>
+
+<!-- add repo modal -->
+<div id="modalRepo" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-head"><h2>Add repository</h2><button class="x" data-close="modalRepo">×</button></div>
+    <div class="tabs">
+      <button class="tab active" data-rtab="upload">Upload zip</button>
+      <button class="tab" data-rtab="clone">Clone URL</button>
+    </div>
+    <div id="rtab-upload" class="modal-body">
+      <p class="muted">Choose a <code>.zip</code> of the repository <b>including its .git folder</b>
+        (<code>git archive</code> does not include .git — zip the folder itself, or use
+        <code>git bundle</code>-style export tools that keep .git).</p>
+      <input type="file" id="zipFile" accept=".zip">
+      <button id="btnUpload" class="primary">Upload &amp; analyse</button>
+    </div>
+    <div id="rtab-clone" class="modal-body hidden">
+      <p class="muted">The repository is deep-cloned (full history). Private repos requiring
+        interactive auth are not supported.</p>
+      <input id="cloneUrl" placeholder="https://github.com/DaveGamble/cJSON.git" spellcheck="false">
+      <div class="chips">
+        <button class="chip sample" data-url="https://github.com/DaveGamble/cJSON.git">cJSON</button>
+        <button class="chip sample" data-url="https://github.com/redis/redis.git">Redis</button>
+        <button class="chip sample" data-url="https://github.com/git/git.git">Git</button>
+      </div>
+      <button id="btnClone" class="primary">Clone &amp; analyse</button>
+    </div>
+    <div id="repoStatus" class="muted small"></div>
+  </div>
+</div>
+
+<!-- commit picker modal -->
+<div id="modalCommits" class="modal hidden">
+  <div class="modal-box wide">
+    <div class="modal-head"><h2>Select commits <span class="muted small">(manual commit set)</span></h2>
+      <button class="x" data-close="modalCommits">×</button></div>
+    <div class="filterbar">
+      <input id="pickSearch" placeholder="Search hash / subject / author" spellcheck="false">
+      <input type="date" id="pickFrom" title="From (UTC)">
+      <input type="date" id="pickTo" title="To (UTC)">
+      <button id="btnPickSearch" class="ghost">Search</button>
+    </div>
+    <div class="tablewrap small">
+      <table id="pickTable"></table>
+    </div>
+    <div class="modal-foot">
+      <button id="btnPickPage" class="chip">Select all on page</button>
+      <span id="pickInfo" class="muted small"></span>
+      <span class="spacer"></span>
+      <span id="pickCount" class="pill">0 selected</span>
+      <button id="btnPickClear" class="chip">Clear all</button>
+      <button id="btnPickDone" class="primary">Done</button>
+    </div>
+  </div>
+</div>
+
+<!-- author merge modal -->
+<div id="modalAuthors" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-head"><h2>Authors &amp; merging</h2><button class="x" data-close="modalAuthors">×</button></div>
+    <p class="muted small">Git's <code>.mailmap</code> is applied automatically. To merge authors
+      manually, tick two or more identities and give the group a name.</p>
+    <div class="tablewrap small">
+      <table id="authorTable"></table>
+    </div>
+    <div class="modal-foot">
+      <input id="mergeName" placeholder="Group name (e.g. 'Brendan')">
+      <button id="btnMerge" class="primary">Merge selected</button>
+    </div>
+    <div id="groupsList"></div>
+  </div>
+</div>
+
+<div id="loading" class="loading hidden"><div class="spinner"></div><div id="loadingMsg">Working…</div></div>
+<div id="toasts"></div>
+
+<script src="{{ url_for('static', filename='app.js') }}"></script>
+</body>
+</html>

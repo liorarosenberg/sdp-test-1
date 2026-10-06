@@ -1,0 +1,7 @@
+# Runtime data (ingested repos, caches)
+data/
+
+# Python
+__pycache__/
+*.pyc
+.venv/

@@ -1,0 +1,2 @@
+# RAT — Repo Analysis Tool dependencies
+flask>=3.0
