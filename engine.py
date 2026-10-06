@@ -54,7 +54,10 @@ def _lock(key: str) -> threading.Lock:
 # --------------------------------------------------------------------------
 
 def _git(args, cwd=None, check=True, timeout=900) -> subprocess.CompletedProcess:
-    env = dict(os.environ, GIT_TERMINAL_PROMPT="0")
+    # GIT_ASKPASS="echo" neutralises inherited IDE/desktop askpass helpers,
+    # so auth failures (e.g. a nonexistent remote repo) fail fast instead of
+    # hanging on a GUI credential prompt the server can never answer.
+    env = dict(os.environ, GIT_TERMINAL_PROMPT="0", GIT_ASKPASS="echo")
     try:
         proc = subprocess.run(
             ["git"] + args, cwd=cwd, env=env,
