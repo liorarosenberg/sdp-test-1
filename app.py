@@ -12,6 +12,19 @@ from flask import Flask, jsonify, render_template, request
 import engine
 
 app = Flask(__name__)
+
+
+def _asset_ver(fname: str) -> str:
+    """Mtime-based version token so browsers re-fetch edited static assets."""
+    try:
+        return str(int(os.stat(os.path.join(app.static_folder, fname)).st_mtime))
+    except OSError:
+        return "0"
+
+
+@app.context_processor
+def _inject_asset_ver():
+    return {"av": _asset_ver}
 app.config["MAX_CONTENT_LENGTH"] = 2 * 1024 ** 3  # 2 GB uploads
 
 

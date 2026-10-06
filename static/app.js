@@ -512,6 +512,10 @@ function wire() {
   $("btnCsv").addEventListener("click", exportCsv);
 
   document.querySelectorAll("[data-close]").forEach(b => b.addEventListener("click", () => $(b.dataset.close).classList.add("hidden")));
+  window.addEventListener("keydown", (e) => {
+    if (e.key === "Escape" || e.key === "Esc" || e.keyCode === 27)
+      document.querySelectorAll(".modal:not(.hidden)").forEach(m => m.classList.add("hidden"));
+  }, true);
   document.querySelectorAll(".modal").forEach(m => m.addEventListener("mousedown", e => { if (e.target === m) m.classList.add("hidden"); }));
 }
 

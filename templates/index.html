@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>RAT — Repo Analysis Tool</title>
-<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}?v={{ av('style.css') }}">
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"
         onerror="window.__noChart=true"></script>
 </head>
@@ -181,6 +181,6 @@
 <div id="loading" class="loading hidden"><div class="spinner"></div><div id="loadingMsg">Working…</div></div>
 <div id="toasts"></div>
 
-<script src="{{ url_for('static', filename='app.js') }}"></script>
+<script src="{{ url_for('static', filename='app.js') }}?v={{ av('app.js') }}"></script>
 </body>
 </html>
